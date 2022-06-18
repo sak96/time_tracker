@@ -1,8 +1,11 @@
 use core::time;
-use gtk::traits::{BoxExt, ButtonExt, GtkWindowExt, OrientableExt};
-use gtk::ApplicationWindow;
 use relm4::{
-    send, AppUpdate, MessageHandler, Model, RelmApp, RelmMsgHandler, Sender, WidgetPlus, Widgets,
+    gtk,
+    gtk::traits::{
+        BoxExt, ButtonExt, CheckButtonExt, DialogExt, GtkWindowExt, OrientableExt, WidgetExt,
+    },
+    send, AppUpdate, ComponentUpdate, MessageHandler, Model, RelmApp, RelmComponent,
+    RelmMsgHandler, Sender, WidgetPlus, Widgets,
 };
 
 use std::sync::mpsc::{channel, TryRecvError};
@@ -25,6 +28,7 @@ impl Status {
     const LONG_BREAK_DURATION: u32 = 60 * 15;
     const SHORT_BREAK_DURATION: u32 = 60 * 5;
     const SHORT_BREAK_PER_LONG_BREAK: u32 = 3;
+    pub const EXTEND_DURATION: u32 = 60 * 5;
 
     pub fn next(&mut self) {
         *self = self.try_next()
@@ -55,6 +59,8 @@ impl Status {
 
 struct AppModel {
     is_paused: bool,
+    is_notify: bool,
+    is_auto_next_task: bool,
     timer: u32,
     status: Status,
 }
@@ -64,6 +70,8 @@ impl Default for AppModel {
         let status = Status::Focus(0);
         Self {
             is_paused: false,
+            is_notify: true,
+            is_auto_next_task: false,
             timer: status.time_duration(),
             status,
         }
@@ -94,12 +102,18 @@ impl AppModel {
     }
 
     #[inline]
-    pub fn reset_timer_if_empty(&mut self) {
+    pub fn reset_timer_if_empty(&mut self) -> bool {
         if self.timer == 0 {
             self.status.next();
             self.timer = self.status.time_duration();
-            self.is_paused = true;
+            if !self.is_auto_next_task {
+                self.is_paused = true;
+                if self.is_notify {
+                    return true;
+                }
+            }
         }
+        false
     }
 }
 
@@ -108,6 +122,9 @@ enum AppMsg {
     CountDown,
     PauseTimer,
     ResetTimer,
+    NotifyToggled(bool),
+    AutoNextTaskToggled(bool),
+    ExtendStage,
     NextStage,
 }
 
@@ -120,7 +137,7 @@ impl Model for AppModel {
 #[relm4::widget]
 impl Widgets<AppModel, ()> for AppWidgets {
     view! {
-        ApplicationWindow {
+        gtk::ApplicationWindow {
             set_title: Some("Simple app"),
             set_child = Some(&gtk::Box) {
                 set_orientation: gtk::Orientation::Vertical,
@@ -135,6 +152,22 @@ impl Widgets<AppModel, ()> for AppWidgets {
                 append = &gtk::Label {
                     set_margin_all: 5,
                     set_label: watch! { &model.get_label() },
+                },
+                append = &gtk::CheckButton {
+                    set_margin_all: 5,
+                    set_label: Some("Auto Next Task"),
+                    connect_toggled(sender) => move |b| {
+                        send!(sender, AppMsg::AutoNextTaskToggled(b.is_active()));
+                    },
+                },
+                append = &gtk::CheckButton {
+                    set_active: model.is_notify,
+                    set_visible: watch! {!model.is_auto_next_task},
+                    set_margin_all: 5,
+                    set_label: Some("Notify End of Task"),
+                    connect_toggled(sender) => move |b| {
+                        send!(sender, AppMsg::NotifyToggled(b.is_active()));
+                    },
                 },
                 append = &gtk::Button {
                     set_margin_all: 5,
@@ -168,13 +201,81 @@ impl Widgets<AppModel, ()> for AppWidgets {
         }
     }
 }
+struct DialogModel {
+    hidden: bool,
+}
+
+enum DialogMsg {
+    Show,
+    Accept,
+    PartialAccept,
+    Cancel,
+}
+
+impl Model for DialogModel {
+    type Msg = DialogMsg;
+    type Widgets = DialogWidgets;
+    type Components = ();
+}
+
+impl ComponentUpdate<AppModel> for DialogModel {
+    fn init_model(_parent_model: &AppModel) -> Self {
+        DialogModel { hidden: true }
+    }
+
+    fn update(
+        &mut self,
+        msg: DialogMsg,
+        _components: &(),
+        _sender: Sender<DialogMsg>,
+        parent_sender: Sender<AppMsg>,
+    ) {
+        match msg {
+            DialogMsg::Show => self.hidden = false,
+            DialogMsg::Accept => {
+                self.hidden = true;
+                send!(parent_sender, AppMsg::NextStage);
+            }
+            DialogMsg::PartialAccept => {
+                self.hidden = true;
+                send!(parent_sender, AppMsg::ExtendStage);
+            }
+            DialogMsg::Cancel => self.hidden = true,
+        }
+    }
+}
+
+#[relm4::widget]
+impl Widgets<DialogModel, AppModel> for DialogWidgets {
+    view! {
+        dialog = gtk::MessageDialog {
+            set_transient_for: parent!(Some(&parent_widgets.root_widget())),
+            set_modal: true,
+            set_visible: watch!(!model.hidden),
+            set_text: Some("Do you want to move to next task?"),
+            set_secondary_text: Some("You can unset notification from the app by toggling the check button."),
+            add_button: args!("Start Next Task", gtk::ResponseType::Accept),
+            add_button: args!("Extend Timer", gtk::ResponseType::Other(0)),
+            add_button: args!("Pause Timer", gtk::ResponseType::Cancel),
+            connect_response(sender) => move |_, resp| {
+                send!(sender, match resp  {
+                    gtk::ResponseType::Accept => DialogMsg::Accept,
+                    gtk::ResponseType::Other(0) => DialogMsg::PartialAccept,
+                    _ => DialogMsg::Cancel,
+                });
+            }
+        }
+    }
+}
 
 impl AppUpdate for AppModel {
     fn update(&mut self, msg: AppMsg, components: &AppComponents, _sender: Sender<AppMsg>) -> bool {
         match msg {
             AppMsg::CountDown => {
                 self.timer -= 1;
-                self.reset_timer_if_empty();
+                if self.reset_timer_if_empty() {
+                    components.dialog.send(DialogMsg::Show).unwrap();
+                }
             }
             AppMsg::ResumeTimer => {
                 self.is_paused = false;
@@ -194,6 +295,14 @@ impl AppUpdate for AppModel {
                 self.reset_timer_if_empty();
                 self.is_paused = false;
             }
+            AppMsg::ExtendStage => {
+                self.timer = Status::EXTEND_DURATION;
+                self.is_paused = false;
+            }
+            AppMsg::NotifyToggled(is_notify) => self.is_notify = is_notify,
+            AppMsg::AutoNextTaskToggled(is_auto_next_task) => {
+                self.is_auto_next_task = is_auto_next_task
+            }
         }
         components.timer_handler.send(!self.is_paused);
         true
@@ -202,6 +311,7 @@ impl AppUpdate for AppModel {
 #[derive(relm4::Components)]
 struct AppComponents {
     timer_handler: RelmMsgHandler<TimerHandler, AppModel>,
+    dialog: RelmComponent<DialogModel, AppModel>,
 }
 
 impl MessageHandler<AppModel> for TimerHandler {

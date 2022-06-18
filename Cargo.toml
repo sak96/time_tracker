@@ -7,6 +7,4 @@ edition = "2021"
 
 [dependencies]
 rand = "0.8.4"
-gtk = { version = "0.4.8", package = "gtk4" }
-relm4 = { version = "0.4", features = ["macros", "libadwaita"] }
-relm4-components = "0.4"
+relm4 = { version = "0.4", features = ["macros"] }
