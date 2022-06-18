@@ -1,9 +1,9 @@
 use core::time;
 use relm4::{
-    gtk::{self, Align},
     gtk::traits::{
         BoxExt, ButtonExt, CheckButtonExt, DialogExt, GtkWindowExt, OrientableExt, WidgetExt,
     },
+    gtk::{self, Align},
     send, AppUpdate, ComponentUpdate, MessageHandler, Model, RelmApp, RelmComponent,
     RelmMsgHandler, Sender, WidgetPlus, Widgets,
 };
