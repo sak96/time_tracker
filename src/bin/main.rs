@@ -1,6 +1,6 @@
 use core::time;
 use relm4::{
-    gtk,
+    gtk::{self, Align},
     gtk::traits::{
         BoxExt, ButtonExt, CheckButtonExt, DialogExt, GtkWindowExt, OrientableExt, WidgetExt,
     },
@@ -154,6 +154,7 @@ impl Widgets<AppModel, ()> for AppWidgets {
                     set_label: watch! { &model.get_label() },
                 },
                 append = &gtk::CheckButton {
+                    set_halign: Align::Center,
                     set_margin_all: 5,
                     set_label: Some("Auto Next Task"),
                     connect_toggled(sender) => move |b| {
@@ -161,6 +162,7 @@ impl Widgets<AppModel, ()> for AppWidgets {
                     },
                 },
                 append = &gtk::CheckButton {
+                    set_halign: Align::Center,
                     set_active: model.is_notify,
                     set_visible: watch! {!model.is_auto_next_task},
                     set_margin_all: 5,
