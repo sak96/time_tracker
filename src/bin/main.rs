@@ -13,15 +13,102 @@ struct TimerHandler {
     sender: std::sync::mpsc::Sender<bool>,
 }
 
-#[derive(Default)]
+#[derive(Debug)]
+enum Status {
+    Focus(u32),
+    LongBreak,
+    ShortBreak(u32),
+}
+
+impl Status {
+    const FOCUS_DURATION: u32 = 60 * 45;
+    const LONG_BREAK_DURATION: u32 = 60 * 15;
+    const SHORT_BREAK_DURATION: u32 = 60 * 5;
+    const SHORT_BREAK_PER_LONG_BREAK: u32 = 3;
+
+    pub fn next(&mut self) {
+        *self = self.try_next()
+    }
+
+    pub fn time_duration(&self) -> u32 {
+        match self {
+            Status::Focus(_) => Self::FOCUS_DURATION,
+            Status::LongBreak => Self::LONG_BREAK_DURATION,
+            Status::ShortBreak(_) => Self::SHORT_BREAK_DURATION,
+        }
+    }
+
+    fn try_next(&self) -> Self {
+        match self {
+            Status::Focus(breaks) => {
+                if *breaks == Self::SHORT_BREAK_PER_LONG_BREAK {
+                    Status::LongBreak
+                } else {
+                    Status::ShortBreak(*breaks)
+                }
+            }
+            Status::LongBreak => Self::Focus(0),
+            Status::ShortBreak(breaks) => Status::Focus(breaks + 1),
+        }
+    }
+}
+
 struct AppModel {
-    timer: Option<u32>,
+    is_paused: bool,
+    timer: u32,
+    status: Status,
+}
+
+impl Default for AppModel {
+    fn default() -> Self {
+        let status = Status::Focus(0);
+        Self {
+            is_paused: false,
+            timer: status.time_duration(),
+            status,
+        }
+    }
+}
+
+impl AppModel {
+    #[inline]
+    fn show_time(duration: u32) -> String {
+        let seconds = duration % 60;
+        let minutes = (duration / 60) % 60;
+        let hours = (duration / 60) / 60;
+        format!("{}:{}:{}", hours, minutes, seconds)
+    }
+
+    pub fn get_label(&self) -> String {
+        format!(
+            "Timer {} / {} {}| Status: {:?}",
+            Self::show_time(self.timer),
+            Self::show_time(self.status.time_duration()),
+            if self.is_paused {
+                " Paused "
+            } else {
+                " Running "
+            },
+            self.status
+        )
+    }
+
+    #[inline]
+    pub fn reset_timer_if_empty(&mut self) {
+        if self.timer == 0 {
+            self.status.next();
+            self.timer = self.status.time_duration();
+            self.is_paused = true;
+        }
+    }
 }
 
 enum AppMsg {
-    StartTimer,
+    ResumeTimer,
     CountDown,
-    StopTimer,
+    PauseTimer,
+    ResetTimer,
+    NextStage,
 }
 
 impl Model for AppModel {
@@ -42,28 +129,39 @@ impl Widgets<AppModel, ()> for AppWidgets {
                 append = &gtk::ProgressBar {
                     set_margin_all: 5,
                     set_fraction: watch! {
-                        match model.timer {
-                            Some(timer) => timer as f64 / 100.0,
-                            _=> 100.0,
-                        }
+                        model.timer as f64 / model.status.time_duration() as f64
                     },
                 },
                 append = &gtk::Label {
                     set_margin_all: 5,
-                    set_label: watch! { &format!("Timer: {:?}", model.timer) },
+                    set_label: watch! { &model.get_label() },
                 },
                 append = &gtk::Button {
                     set_margin_all: 5,
-                    set_label: "Start",
+                    set_label: "Resume",
                     connect_clicked(sender) => move |_| {
-                        send!(sender, AppMsg::StartTimer);
+                        send!(sender, AppMsg::ResumeTimer);
                     },
                 },
                 append = &gtk::Button {
                     set_margin_all: 5,
-                    set_label: "Stop",
+                    set_label: "Reset",
                     connect_clicked(sender) => move |_| {
-                        send!(sender, AppMsg::StopTimer);
+                        send!(sender, AppMsg::ResetTimer);
+                    },
+                },
+                append = &gtk::Button {
+                    set_margin_all: 5,
+                    set_label: "Pause",
+                    connect_clicked(sender) => move |_| {
+                        send!(sender, AppMsg::PauseTimer);
+                    },
+                },
+                append = &gtk::Button {
+                    set_margin_all: 5,
+                    set_label: "Next",
+                    connect_clicked(sender) => move |_| {
+                        send!(sender, AppMsg::NextStage);
                     },
                 }
             },
@@ -75,22 +173,29 @@ impl AppUpdate for AppModel {
     fn update(&mut self, msg: AppMsg, components: &AppComponents, _sender: Sender<AppMsg>) -> bool {
         match msg {
             AppMsg::CountDown => {
-                if let Some(t) = &mut self.timer {
-                    *t -= 1;
-                    if *t == 0 {
-                        self.timer = None;
-                    }
-                }
+                self.timer -= 1;
+                self.reset_timer_if_empty();
             }
-            AppMsg::StartTimer => {
+            AppMsg::ResumeTimer => {
+                self.is_paused = false;
+                self.reset_timer_if_empty();
                 components.timer_handler.send(true);
-                self.timer = Some(100);
             }
-            AppMsg::StopTimer => {
-                self.timer = None;
+            AppMsg::ResetTimer => {
+                self.is_paused = false;
+                self.timer = self.status.time_duration();
                 components.timer_handler.send(true);
+            }
+            AppMsg::PauseTimer => {
+                self.is_paused = true;
+            }
+            AppMsg::NextStage => {
+                self.timer = 0;
+                self.reset_timer_if_empty();
+                self.is_paused = false;
             }
         }
+        components.timer_handler.send(!self.is_paused);
         true
     }
 }
@@ -139,7 +244,8 @@ impl MessageHandler<AppModel> for TimerHandler {
 }
 
 fn main() {
-    let model = AppModel::default();
+    let mut model = AppModel::default();
+    model.timer = model.status.time_duration();
     let app = RelmApp::new(model);
     app.run();
 }
