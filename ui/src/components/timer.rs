@@ -4,13 +4,14 @@ use yew::prelude::*;
 
 pub struct Timer {
     time_left: u32,
+    max_time: u32,
     timeout: Option<Timeout>,
 }
 
 pub enum TimerMsg {
     ResumeTimer,
     PauseTimer,
-    ResetTimer,
+    ResetTimer(u32),
     CountDown,
 }
 
@@ -20,7 +21,6 @@ pub struct TimerProps {
 }
 
 impl Timer {
-    pub const MAX_TIME: u32 = 100;
     fn tick(&mut self, ctx: &Context<Self>) -> Option<Timeout> {
         let handle = {
             let link = ctx.link().clone();
@@ -41,6 +41,7 @@ impl Component for Timer {
             .borrow_mut()
             .replace(ctx.link().clone());
         Self {
+            max_time: 0,
             time_left: 0,
             timeout: None,
         }
@@ -56,8 +57,9 @@ impl Component for Timer {
                 self.timeout.take();
                 false
             }
-            TimerMsg::ResetTimer => {
-                self.time_left = Self::MAX_TIME;
+            TimerMsg::ResetTimer(max_time) => {
+                self.max_time = max_time;
+                self.time_left = max_time;
                 self.tick(ctx);
                 true
             }
@@ -72,7 +74,7 @@ impl Component for Timer {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
             <>
-                <progress value={self.time_left.to_string()} max={Self::MAX_TIME.to_string()}/>
+                <progress value={self.time_left.to_string()} max={self.max_time.to_string()}/>
                 <p>{"Time Left: "}{self.time_left.to_string()}</p>
             </>
         }

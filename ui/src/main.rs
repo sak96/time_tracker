@@ -21,7 +21,7 @@ impl Component for App {
         let reset_timer = {
             let timer_link = timer_link.clone();
             move |_| {
-                timer_link.borrow_clone_unwrap().send_message(TimerMsg::ResetTimer)
+                timer_link.borrow_clone_unwrap().send_message(TimerMsg::ResetTimer(100))
             }
         };
         let pause_timer = {
