@@ -4,6 +4,7 @@ use yew::prelude::*;
 
 pub mod components;
 pub mod utils;
+pub mod tauri;
 
 struct App {}
 

@@ -1,11 +1,13 @@
 use crate::utils::weak_component_link::WeakComponentLink;
 use gloo::timers::callback::Timeout;
 use yew::prelude::*;
+use crate::tauri::notify;
 
 pub struct Timer {
     time_left: u32,
     max_time: u32,
     timeout: Option<Timeout>,
+    stop_notify: bool,
 }
 
 pub enum TimerMsg {
@@ -44,6 +46,7 @@ impl Component for Timer {
             max_time: 0,
             time_left: 0,
             timeout: None,
+            stop_notify: true,
         }
     }
 
@@ -61,10 +64,20 @@ impl Component for Timer {
                 self.max_time = max_time;
                 self.time_left = max_time;
                 self.tick(ctx);
+                self.stop_notify = false;
                 true
             }
             TimerMsg::CountDown => {
-                self.time_left = self.time_left.saturating_sub(1);
+                if self.time_left == 0 {
+                    if !self.stop_notify {
+                        if notify("Timer Expired".to_string()).is_err() {
+                            gloo::console::log!("timer expired!");
+                        };
+                        self.stop_notify = true;
+                    }
+                } else {
+                    self.time_left -= 1;
+                }
                 self.tick(ctx);
                 true
             }

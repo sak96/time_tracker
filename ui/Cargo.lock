@@ -495,6 +495,7 @@ name = "time_tracker_ui"
 version = "0.1.0"
 dependencies = [
  "gloo 0.7.0",
+ "wasm-bindgen",
  "yew",
 ]
 

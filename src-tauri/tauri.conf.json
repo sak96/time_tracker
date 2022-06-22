@@ -3,7 +3,8 @@
     "beforeBuildCommand": "cd ui/ && trunk build",
     "beforeDevCommand": "cd ui/ && trunk serve",
     "devPath": "http://localhost:8080",
-    "distDir": "../ui/dist/"
+    "distDir": "../ui/dist/",
+    "withGlobalTauri": true
   },
   "package": {
     "productName": "time_tracker",
