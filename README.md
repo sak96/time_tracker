@@ -5,7 +5,7 @@ Time tracker app.
 ## Setup
 
 ```bash
-cargo install trunk tauri
+cargo install trunk tauri-cli
 ```
 
 ## Development
