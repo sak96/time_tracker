@@ -1,7 +1,8 @@
+use crate::tauri::notify;
 use crate::utils::weak_component_link::WeakComponentLink;
 use gloo::timers::callback::Timeout;
+use stylist::css;
 use yew::prelude::*;
-use crate::tauri::notify;
 
 pub struct Timer {
     time_left: u32,
@@ -87,7 +88,13 @@ impl Component for Timer {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
             <>
-                <progress value={self.time_left.to_string()} max={self.max_time.to_string()}/>
+                <progress value={self.time_left.to_string()} max={self.max_time.to_string()}
+                    class={css!(r#"
+                        border-radius: 20%;
+                        height: 10px;
+                        width: 70%;
+                    "#)}
+                />
                 <p>{"Time Left: "}{self.time_left.to_string()}</p>
             </>
         }
