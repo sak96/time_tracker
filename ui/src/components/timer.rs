@@ -99,14 +99,24 @@ impl Component for Timer {
             <>
                 <p>{format!("Time Left: {}s", self.time_left)}</p>
                 { for ctx.props().children.iter() }
-                <div class={css!("width: 100%; text-align: center; button {display: inline; margin: 10px;}")} >
+                <div class={css!("
+                    width: 100%;
+                    text-align: center;
+                    button {
+                        display: inline;
+                        margin: auto 10px;
+                        border-radius: 50%;
+                        background: LightGreen;
+                        border: 0px;
+                    }
+                ")} >
                     if self.timeout.is_some() {
                         <button onclick={pause}>{ "||" }</button>
                     } else {
                         <button disabled={self.time_left == 0} onclick={resume}>{ ">" }</button>
                     }
                     <progress value={self.time_left.to_string()} max={self.max_time.to_string()}
-                        class={css!(r#"width: 70%;"#)}/>
+                        class={css!(r#"width: 70%; margin: 5px 10px;"#)}/>
                 </div>
             </>
         }
