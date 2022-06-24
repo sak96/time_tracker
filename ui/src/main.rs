@@ -28,48 +28,17 @@ impl Component for App {
                     .send_message(TimerMsg::ResetTimer(100))
             }
         };
-        let pause_timer = {
-            let timer_link = timer_link.clone();
-            move |_| {
-                timer_link
-                    .borrow_clone_unwrap()
-                    .send_message(TimerMsg::PauseTimer)
-            }
-        };
-        let resume_timer = {
-            let timer_link = timer_link.clone();
-            move |_| {
-                timer_link
-                    .borrow_clone_unwrap()
-                    .send_message(TimerMsg::ResumeTimer)
-            }
-        };
-
         html! {
-            <div
-                class={css!(r#"
+            <div class={css!(r#"
                     display: flex;
                     flex-wrap: wrap;
                     align-items: center;
                     flex-direction: column;
                     justify-content: center;
-                "#)}
-            >
+                "#)}>
                 <h1>{ "Pomodoro Timer" }</h1>
                 <Timer weak_link={timer_link}></Timer>
-                <div
-                class={css!(r#"
-                    display: flex;
-                    flex-wrap: wrap;
-                    button {
-                        margin: 10px;
-                    }
-                "#)}
-                >
-                    <button onclick={reset_timer}>{ "Reset" }</button>
-                    <button onclick={pause_timer}>{ "Pause" }</button>
-                    <button onclick={resume_timer}>{ "Resume" }</button>
-                </div>
+                <button onclick={reset_timer}>{ "Reset" }</button>
             </div>
         }
     }

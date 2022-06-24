@@ -54,13 +54,9 @@ impl Component for Timer {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             TimerMsg::ResumeTimer => {
-                self.tick(ctx);
-                false
+                self.tick(ctx).is_none()
             }
-            TimerMsg::PauseTimer => {
-                self.timeout.take();
-                false
-            }
+            TimerMsg::PauseTimer => self.timeout.take().is_some(),
             TimerMsg::ResetTimer(max_time) => {
                 self.max_time = max_time;
                 self.time_left = max_time;
@@ -76,21 +72,41 @@ impl Component for Timer {
                         };
                         self.stop_notify = true;
                     }
+                    self.timeout = None;
                 } else {
                     self.time_left -= 1;
+                    self.tick(ctx);
                 }
-                self.tick(ctx);
                 true
             }
         }
     }
 
-    fn view(&self, _ctx: &Context<Self>) -> Html {
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        let pause = {
+            let link = ctx.link().clone();
+            move |_| {
+                link.send_message(TimerMsg::PauseTimer);
+            }
+        };
+        let resume = {
+            let link = ctx.link().clone();
+            move |_| {
+                link.send_message(TimerMsg::ResumeTimer);
+            }
+        };
         html! {
             <>
-                <p>{"Time Left: "}{self.time_left.to_string()}</p>
-                <progress value={self.time_left.to_string()} max={self.max_time.to_string()}
-                    class={css!(r#"width: 70%;"#)}/>
+                <p>{format!("Time Left: {}s", self.time_left)}</p>
+                <div class={css!("width: 100%; text-align: center; button {display: inline; margin: 10px;}")} >
+                    if self.timeout.is_some() {
+                        <button onclick={pause}>{ "||" }</button>
+                    } else {
+                        <button disabled={self.time_left == 0} onclick={resume}>{ ">" }</button>
+                    }
+                    <progress value={self.time_left.to_string()} max={self.max_time.to_string()}
+                        class={css!(r#"width: 70%;"#)}/>
+                </div>
             </>
         }
     }
