@@ -1,4 +1,3 @@
-use crate::tauri::notify;
 use crate::utils::weak_component_link::WeakComponentLink;
 use gloo::timers::callback::Timeout;
 use stylist::css;
@@ -21,6 +20,7 @@ pub enum TimerMsg {
 #[derive(Clone, PartialEq, Properties)]
 pub struct TimerProps {
     pub weak_link: WeakComponentLink<Timer>,
+    pub on_finish: Option<Callback<()>>,
 }
 
 impl Timer {
@@ -53,9 +53,7 @@ impl Component for Timer {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            TimerMsg::ResumeTimer => {
-                self.tick(ctx).is_none()
-            }
+            TimerMsg::ResumeTimer => self.tick(ctx).is_none(),
             TimerMsg::PauseTimer => self.timeout.take().is_some(),
             TimerMsg::ResetTimer(max_time) => {
                 self.max_time = max_time;
@@ -67,9 +65,9 @@ impl Component for Timer {
             TimerMsg::CountDown => {
                 if self.time_left == 0 {
                     if !self.stop_notify {
-                        if notify("Timer Expired".to_string()).is_err() {
-                            gloo::console::log!("timer expired!");
-                        };
+                        if let Some(ref on_finish) = ctx.props().on_finish {
+                            on_finish.emit(());
+                        }
                         self.stop_notify = true;
                     }
                     self.timeout = None;

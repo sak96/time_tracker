@@ -1,5 +1,4 @@
-use crate::utils::weak_component_link::WeakComponentLink;
-use components::timer::{Timer, TimerMsg};
+use components::pomodoro::Pomodoro;
 use stylist::css;
 use yew::prelude::*;
 
@@ -19,15 +18,6 @@ impl Component for App {
     }
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
-        let timer_link = WeakComponentLink::default();
-        let reset_timer = {
-            let timer_link = timer_link.clone();
-            move |_| {
-                timer_link
-                    .borrow_clone_unwrap()
-                    .send_message(TimerMsg::ResetTimer(100))
-            }
-        };
         html! {
             <div class={css!(r#"
                     display: flex;
@@ -37,8 +27,7 @@ impl Component for App {
                     justify-content: center;
                 "#)}>
                 <h1>{ "Pomodoro Timer" }</h1>
-                <Timer weak_link={timer_link}></Timer>
-                <button onclick={reset_timer}>{ "Reset" }</button>
+                <Pomodoro />
             </div>
         }
     }
