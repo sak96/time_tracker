@@ -104,7 +104,9 @@ impl Component for Pomodoro {
             move |_| link.send_message(Self::Message::NextStage)
         }));
         html! {
-            <Timer weak_link={timer_link} on_finish={on_finish}></Timer>
+            <Timer weak_link={timer_link} on_finish={on_finish}>
+                <p>{format!("Current Status: {:?}", self.status)}</p>
+            </Timer>
         }
     }
 }

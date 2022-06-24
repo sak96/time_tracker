@@ -21,6 +21,8 @@ pub enum TimerMsg {
 pub struct TimerProps {
     pub weak_link: WeakComponentLink<Timer>,
     pub on_finish: Option<Callback<()>>,
+    #[prop_or_default]
+    pub children: Children,
 }
 
 impl Timer {
@@ -96,6 +98,7 @@ impl Component for Timer {
         html! {
             <>
                 <p>{format!("Time Left: {}s", self.time_left)}</p>
+                { for ctx.props().children.iter() }
                 <div class={css!("width: 100%; text-align: center; button {display: inline; margin: 10px;}")} >
                     if self.timeout.is_some() {
                         <button onclick={pause}>{ "||" }</button>
