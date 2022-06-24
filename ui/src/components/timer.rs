@@ -88,14 +88,9 @@ impl Component for Timer {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
             <>
-                <progress value={self.time_left.to_string()} max={self.max_time.to_string()}
-                    class={css!(r#"
-                        border-radius: 20%;
-                        height: 10px;
-                        width: 70%;
-                    "#)}
-                />
                 <p>{"Time Left: "}{self.time_left.to_string()}</p>
+                <progress value={self.time_left.to_string()} max={self.max_time.to_string()}
+                    class={css!(r#"width: 70%;"#)}/>
             </>
         }
     }
