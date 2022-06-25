@@ -1,9 +1,7 @@
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(module = "/public/glue.js")]
+#[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(js_name = notify, catch)]
+    #[wasm_bindgen(js_namespace = ["window.__TAURI__.notification"], js_name = sendNotification, catch)]
     pub fn notify(msg: String) -> Result<JsValue, JsValue>;
 }
-
-
