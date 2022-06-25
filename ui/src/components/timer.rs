@@ -102,18 +102,14 @@ impl Component for Timer {
                 <div class={css!("
                     width: 100%;
                     text-align: center;
-                    button {
-                        display: inline;
-                        margin: auto 10px;
-                        border-radius: 50%;
-                        background: LightGreen;
-                        border: 0px;
-                    }
+                    button { display: inline; margin: auto 10px; border-radius: 50%; border: 0px; }
                 ")} >
                     if self.timeout.is_some() {
-                        <button onclick={pause}>{ "||" }</button>
+                        <button style="background: LightCoral;" onclick={pause}>{ "||" }</button>
                     } else {
-                        <button disabled={self.time_left == 0} onclick={resume}>{ ">" }</button>
+                        <button style="background: LightGreen;" disabled={self.time_left == 0} onclick={resume}>
+                            { ">" }
+                        </button>
                     }
                     <progress value={self.time_left.to_string()} max={self.max_time.to_string()}
                         class={css!(r#"width: 70%; margin: 5px 10px;"#)}/>
