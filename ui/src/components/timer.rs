@@ -5,6 +5,7 @@ use std::time::Duration;
 use stylist::css;
 use yew::prelude::*;
 
+#[derive(Default)]
 pub struct Timer {
     time_left: Option<Duration>,
     max_time: u32,
@@ -46,11 +47,7 @@ impl Component for Timer {
             .weak_link
             .borrow_mut()
             .replace(ctx.link().clone());
-        Self {
-            max_time: 0,
-            time_left: None,
-            timeout: None,
-        }
+        Self::default()
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
