@@ -1,13 +1,14 @@
 use crate::utils::weak_component_link::WeakComponentLink;
 use gloo::timers::callback::Timeout;
+use print_duration::print_duration;
+use std::time::Duration;
 use stylist::css;
 use yew::prelude::*;
 
 pub struct Timer {
-    time_left: u32,
+    time_left: Option<Duration>,
     max_time: u32,
     timeout: Option<Timeout>,
-    stop_notify: bool,
 }
 
 pub enum TimerMsg {
@@ -47,9 +48,8 @@ impl Component for Timer {
             .replace(ctx.link().clone());
         Self {
             max_time: 0,
-            time_left: 0,
+            time_left: None,
             timeout: None,
-            stop_notify: true,
         }
     }
 
@@ -59,25 +59,25 @@ impl Component for Timer {
             TimerMsg::PauseTimer => self.timeout.take().is_some(),
             TimerMsg::ResetTimer(max_time) => {
                 self.max_time = max_time;
-                self.time_left = max_time;
+                self.time_left = Some(Duration::from_secs(max_time as u64));
                 self.tick(ctx);
-                self.stop_notify = false;
                 true
             }
             TimerMsg::CountDown => {
-                if self.time_left == 0 {
-                    if !self.stop_notify {
+                if let Some(ref mut duration) = self.time_left {
+                    *duration -= Duration::from_secs(1);
+                    if duration.is_zero() {
                         if let Some(ref on_finish) = ctx.props().on_finish {
                             on_finish.emit(());
                         }
-                        self.stop_notify = true;
+                        self.timeout.take();
+                    } else {
+                        self.tick(ctx);
                     }
-                    self.timeout = None;
+                    true
                 } else {
-                    self.time_left -= 1;
-                    self.tick(ctx);
+                    false
                 }
-                true
             }
         }
     }
@@ -97,23 +97,25 @@ impl Component for Timer {
         };
         html! {
             <>
-                <p>{format!("Time Left: {}s", self.time_left)}</p>
-                { for ctx.props().children.iter() }
-                <div class={css!("
-                    width: 100%;
-                    text-align: center;
-                    button { display: inline; margin: auto 10px; border-radius: 50%; border: 0px; }
-                ")} >
-                    if self.timeout.is_some() {
-                        <button style="background: LightCoral;" onclick={pause}>{ "||" }</button>
-                    } else {
-                        <button style="background: LightGreen;" disabled={self.time_left == 0} onclick={resume}>
-                            { ">" }
-                        </button>
-                    }
-                    <progress value={self.time_left.to_string()} max={self.max_time.to_string()}
-                        class={css!(r#"width: 70%; margin: 5px 10px;"#)}/>
-                </div>
+                if let Some(duration) = self.time_left {
+                    <p>{format!("Time Left: {}s", print_duration(duration, 0..3))}</p>
+                    { for ctx.props().children.iter() }
+                    <div class={css!("
+                        width: 100%;
+                        text-align: center;
+                        button { display: inline; margin: auto 10px; border-radius: 50%; border: 0px; }
+                    ")} >
+                        if self.timeout.is_some() {
+                            <button style="background: LightCoral;" onclick={pause}>{ "||" }</button>
+                        } else {
+                            <button style="background: LightGreen;" onclick={resume}>{ ">" }</button>
+                        }
+                        <progress value={duration.as_secs().to_string()} max={self.max_time.to_string()}
+                            class={css!(r#"width: 70%; margin: 5px 10px;"#)}/>
+                    </div>
+                } else {
+                    <p>{"Timer Ended!"}</p>
+                }
             </>
         }
     }

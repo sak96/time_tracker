@@ -418,6 +418,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "print_duration"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cbf86fbaa075e34d48979b104b30bc4c21e488aac29aa6b48e33035cbfaa5cac"
+
+[[package]]
 name = "proc-macro-error"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -613,6 +619,7 @@ name = "time_tracker_ui"
 version = "0.1.0"
 dependencies = [
  "gloo 0.7.0",
+ "print_duration",
  "stylist",
  "wasm-bindgen",
  "yew",
