@@ -61,9 +61,9 @@ impl Component for Timer {
                 true
             }
             TimerMsg::CountDown => {
-                if let Some(ref mut duration) = self.time_left {
-                    *duration -= Duration::from_secs(1);
-                    if duration.is_zero() {
+                if let Some(duration) = self.time_left.as_mut() {
+                    self.time_left = duration.checked_sub(Duration::from_secs(1));
+                    if self.time_left.is_none() {
                         if let Some(ref on_finish) = ctx.props().on_finish {
                             on_finish.emit(());
                         }
