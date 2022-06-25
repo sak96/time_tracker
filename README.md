@@ -2,6 +2,13 @@
 
 Time tracker app.
 
+## Roadmap
+
+- [x] Add Pomodoro timer with notification support.
+- [ ] Store and retrieve record of Pomodoro sessions.
+- [ ] Attach some kind of description and project to each session.
+- [ ] Add helpful visualization for the same.
+
 ## Setup
 
 ```bash
