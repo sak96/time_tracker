@@ -11,11 +11,20 @@ pub struct Pomodoro {
 #[derive(Clone, PartialEq, Properties)]
 pub struct PomodoroProps {}
 
-#[derive(Debug)]
 enum Status {
     Focus(u32),
     LongBreak,
     ShortBreak(u32),
+}
+
+impl std::fmt::Display for Status {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Status::Focus(session) => write!(f, "Focus Session {}", session),
+            Status::LongBreak => write!(f, "Long Break !!!"),
+            Status::ShortBreak(session) => write!(f, "Short Break {}", session),
+        }
+    }
 }
 
 impl Status {
@@ -33,7 +42,7 @@ impl Status {
             Status::Focus(_) => Self::FOCUS_DURATION,
             Status::LongBreak => Self::LONG_BREAK_DURATION,
             Status::ShortBreak(_) => Self::SHORT_BREAK_DURATION,
-        })  * 60
+        }) * 60
     }
 
     fn try_next(&self) -> Self {
@@ -77,7 +86,7 @@ impl Component for Pomodoro {
             PomodoroMsg::AutoNextTaskToggled(_) => todo!(),
             PomodoroMsg::ExtendStage => todo!(),
             PomodoroMsg::NextStage => {
-                if notify(format!("Timer Expired for {:?}", self.status)).is_err() {
+                if notify(format!("Timer Expired for {}", self.status)).is_err() {
                     gloo::console::log!("timer expired!");
                 };
                 self.status.next();
@@ -105,7 +114,7 @@ impl Component for Pomodoro {
         }));
         html! {
             <Timer weak_link={timer_link} on_finish={on_finish}>
-                <p>{format!("Current Status: {:?}", self.status)}</p>
+                <p>{format!("Current Status: {}", self.status)}</p>
             </Timer>
         }
     }
