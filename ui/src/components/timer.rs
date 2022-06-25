@@ -1,5 +1,6 @@
 use crate::utils::weak_component_link::WeakComponentLink;
 use gloo::timers::callback::Timeout;
+use instant::SystemTime;
 use print_duration::print_duration;
 use std::time::Duration;
 use stylist::css;
@@ -7,15 +8,16 @@ use yew::prelude::*;
 
 #[derive(Default)]
 pub struct Timer {
-    time_left: Option<Duration>,
-    max_time: u32,
+    start_time: Option<SystemTime>,
+    time_left: Duration,
+    max_time: Duration,
     timeout: Option<Timeout>,
 }
 
 pub enum TimerMsg {
     ResumeTimer,
     PauseTimer,
-    ResetTimer(u32),
+    ResetTimer(u64),
     CountDown,
 }
 
@@ -55,26 +57,36 @@ impl Component for Timer {
             TimerMsg::ResumeTimer => self.tick(ctx).is_none(),
             TimerMsg::PauseTimer => self.timeout.take().is_some(),
             TimerMsg::ResetTimer(max_time) => {
-                self.max_time = max_time;
-                self.time_left = Some(Duration::from_secs(max_time as u64));
+                self.start_time = Some(SystemTime::now());
+                self.max_time = Duration::from_secs(max_time);
+                self.time_left = self.max_time;
                 self.tick(ctx);
                 true
             }
             TimerMsg::CountDown => {
-                if let Some(duration) = self.time_left.as_mut() {
-                    self.time_left = duration.checked_sub(Duration::from_secs(1));
-                    if self.time_left.is_none() {
+                if let Some(time) = self.start_time {
+                    self.tick(ctx);
+                    if let Some(time_left) = self.max_time.checked_sub(
+                        SystemTime::now()
+                            .duration_since(time)
+                            .expect("rewind of clock not supported"),
+                    ) {
+                        if time_left != self.time_left {
+                            // time changed
+                            self.time_left = time_left;
+                            return true;
+                        }
+                    } else {
+                        // time ended
                         if let Some(ref on_finish) = ctx.props().on_finish {
                             on_finish.emit(());
                         }
                         self.timeout.take();
-                    } else {
-                        self.tick(ctx);
+                        self.start_time.take();
+                        return true;
                     }
-                    true
-                } else {
-                    false
                 }
+                false
             }
         }
     }
@@ -94,8 +106,8 @@ impl Component for Timer {
         };
         html! {
             <>
-                if let Some(duration) = self.time_left {
-                    <p>{format!("Time Left: {}s", print_duration(duration, 0..3))}</p>
+                if self.start_time.is_some() {
+                    <p>{format!("Time Left: {}s", print_duration(self.time_left, 0..3))}</p>
                     { for ctx.props().children.iter() }
                     <div class={css!("
                         width: 100%;
@@ -107,7 +119,7 @@ impl Component for Timer {
                         } else {
                             <button style="background: LightGreen;" onclick={resume}>{ ">" }</button>
                         }
-                        <progress value={duration.as_secs().to_string()} max={self.max_time.to_string()}
+                        <progress value={self.time_left.as_secs().to_string()} max={self.max_time.as_secs().to_string()}
                             class={css!(r#"width: 70%; margin: 5px 10px;"#)}/>
                     </div>
                 } else {

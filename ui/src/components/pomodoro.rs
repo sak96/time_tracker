@@ -28,16 +28,16 @@ impl std::fmt::Display for Status {
 }
 
 impl Status {
-    const FOCUS_DURATION: u32 = 45;
-    const LONG_BREAK_DURATION: u32 = 15;
-    const SHORT_BREAK_DURATION: u32 = 5;
+    const FOCUS_DURATION: u64 = 45;
+    const LONG_BREAK_DURATION: u64 = 15;
+    const SHORT_BREAK_DURATION: u64 = 5;
     const SHORT_BREAK_PER_LONG_BREAK: u32 = 3;
 
     pub fn next(&mut self) {
         *self = self.try_next()
     }
 
-    pub fn time_duration(&self) -> u32 {
+    pub fn time_duration(&self) -> u64 {
         (match self {
             Status::Focus(_) => Self::FOCUS_DURATION,
             Status::LongBreak => Self::LONG_BREAK_DURATION,

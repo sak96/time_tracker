@@ -619,6 +619,7 @@ name = "time_tracker_ui"
 version = "0.1.0"
 dependencies = [
  "gloo 0.7.0",
+ "instant",
  "print_duration",
  "stylist",
  "wasm-bindgen",
