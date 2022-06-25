@@ -26,3 +26,7 @@ cargo tauri dev
 ```bash
 cargo tauri build
 ```
+
+## Screenshot
+
+!["Pomodoro Screen"](./screenshot/pomodoro.png)
