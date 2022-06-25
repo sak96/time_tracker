@@ -25,6 +25,7 @@ impl Component for App {
                     align-items: center;
                     flex-direction: column;
                     justify-content: center;
+                    height: 100%;
                 "#)}>
                 <h1>{ "Pomodoro Timer" }</h1>
                 <Pomodoro />
