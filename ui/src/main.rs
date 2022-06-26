@@ -18,9 +18,13 @@ impl Component for App {
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
-            <div class="container center">
-                <h1>{ "Pomodoro Timer" }</h1>
-                <Pomodoro />
+            <div class="container">
+                <div class="card grey darken-3 center">
+                    <h1 class="card-title">{ "Pomodoro Timer" }</h1>
+                    <div class="card-content">
+                        <Pomodoro />
+                    </div>
+                </div>
             </div>
         }
     }
