@@ -1,5 +1,4 @@
 use components::pomodoro::Pomodoro;
-use stylist::css;
 use yew::prelude::*;
 
 pub mod components;
@@ -19,14 +18,7 @@ impl Component for App {
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
-            <div class={css!(r#"
-                    display: flex;
-                    flex-wrap: wrap;
-                    align-items: center;
-                    flex-direction: column;
-                    justify-content: center;
-                    height: 100%;
-                "#)}>
+            <div class="container center">
                 <h1>{ "Pomodoro Timer" }</h1>
                 <Pomodoro />
             </div>

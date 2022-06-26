@@ -3,7 +3,6 @@ use gloo::timers::callback::Timeout;
 use instant::SystemTime;
 use print_duration::print_duration;
 use std::time::Duration;
-use stylist::css;
 use yew::prelude::*;
 
 #[derive(Default)]
@@ -109,18 +108,14 @@ impl Component for Timer {
                 if self.start_time.is_some() {
                     <p>{format!("Time Left: {}s", print_duration(self.time_left, 0..3))}</p>
                     { for ctx.props().children.iter() }
-                    <div class={css!("
-                        width: 100%;
-                        text-align: center;
-                        button { display: inline; margin: auto 10px; border-radius: 50%; border: 0px; }
-                    ")} >
+                    <div >
                         if self.timeout.is_some() {
-                            <button style="background: LightCoral;" onclick={pause}>{ "||" }</button>
+                            <button class="btn-floating red" onclick={pause}>{ "||" }</button>
                         } else {
-                            <button style="background: LightGreen;" onclick={resume}>{ ">" }</button>
+                            <button class="btn-floating green" onclick={resume}>{ ">" }</button>
                         }
                         <progress value={self.time_left.as_secs().to_string()} max={self.max_time.as_secs().to_string()}
-                            class={css!(r#"width: 70%; margin: 5px 10px;"#)}/>
+                         style="width: 90%"/>
                     </div>
                 } else {
                     <p>{"Timer Ended!"}</p>
