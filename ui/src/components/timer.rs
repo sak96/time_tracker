@@ -14,6 +14,7 @@ pub struct Timer {
     timeout: Option<Timeout>,
 }
 
+#[derive(Clone)]
 pub enum TimerMsg {
     ResumeTimer,
     PauseTimer,
@@ -106,16 +107,15 @@ impl Component for Timer {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let pause = {
-            let link = ctx.link().clone();
-            move |_| {
-                link.send_message(TimerMsg::PauseTimer);
-            }
+        let (icon, color, msg)= if self.timeout.is_some() {
+            ("pause", "red",  TimerMsg::PauseTimer)
+        } else {
+            ("play_arrow", "green", TimerMsg::ResumeTimer)
         };
-        let resume = {
+        let onclick = {
             let link = ctx.link().clone();
             move |_| {
-                link.send_message(TimerMsg::ResumeTimer);
+                link.send_message(msg.clone());
             }
         };
         html! {
@@ -124,11 +124,9 @@ impl Component for Timer {
                     <p>{format!("Time Left: {}s", print_duration(self.time_left, 0..3))}</p>
                     { for ctx.props().children.iter() }
                     <div >
-                        if self.timeout.is_some() {
-                            <button class="btn-floating red" onclick={pause}>{ "||" }</button>
-                        } else {
-                            <button class="btn-floating green" onclick={resume}>{ ">" }</button>
-                        }
+                        <button class={classes!("btn-floating", color)} onclick={onclick}>
+                            <i class="material-icons">{icon}</i>
+                        </button>
                         <progress value={self.time_left.as_secs().to_string()} max={self.max_time.as_secs().to_string()}
                          style="width: 90%"/>
                     </div>
