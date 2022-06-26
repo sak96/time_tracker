@@ -10,6 +10,7 @@ pub struct Timer {
     start_time: Option<SystemTime>,
     time_left: Duration,
     max_time: Duration,
+    paused_time: Duration,
     timeout: Option<Timeout>,
 }
 
@@ -53,7 +54,19 @@ impl Component for Timer {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            TimerMsg::ResumeTimer => self.tick(ctx).is_none(),
+            TimerMsg::ResumeTimer => {
+                if self.tick(ctx).is_none() {
+                    if let Some(time) = self.start_time {
+                        self.paused_time = SystemTime::now()
+                            .duration_since(time)
+                            .expect("rewind of clock not supported")
+                            .saturating_add(self.time_left)
+                            .checked_sub(self.max_time)
+                            .unwrap_or(Duration::ZERO);
+                         true
+                    } else {false}
+                } else {false}
+            }
             TimerMsg::PauseTimer => self.timeout.take().is_some(),
             TimerMsg::ResetTimer(max_time) => {
                 self.start_time = Some(SystemTime::now());
@@ -65,11 +78,13 @@ impl Component for Timer {
             TimerMsg::CountDown => {
                 if let Some(time) = self.start_time {
                     self.tick(ctx);
-                    if let Some(time_left) = self.max_time.checked_sub(
-                        SystemTime::now()
-                            .duration_since(time)
-                            .expect("rewind of clock not supported"),
-                    ) {
+                    if let Some(time_left) =
+                        self.max_time.saturating_add(self.paused_time).checked_sub(
+                            SystemTime::now()
+                                .duration_since(time)
+                                .expect("rewind of clock not supported"),
+                        )
+                    {
                         if time_left != self.time_left {
                             // time changed
                             self.time_left = time_left;
