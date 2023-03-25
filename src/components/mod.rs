@@ -1,2 +1,2 @@
-pub mod timer; 
 pub mod pomodoro;
+pub mod timer;

@@ -64,9 +64,13 @@ impl Component for Timer {
                             .saturating_add(self.time_left)
                             .checked_sub(self.max_time)
                             .unwrap_or(Duration::ZERO);
-                         true
-                    } else {false}
-                } else {false}
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
             }
             TimerMsg::PauseTimer => self.timeout.take().is_some(),
             TimerMsg::ResetTimer(max_time) => {
@@ -107,8 +111,8 @@ impl Component for Timer {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let (icon, color, msg)= if self.timeout.is_some() {
-            ("pause", "red",  TimerMsg::PauseTimer)
+        let (icon, color, msg) = if self.timeout.is_some() {
+            ("pause", "red", TimerMsg::PauseTimer)
         } else {
             ("play_arrow", "green", TimerMsg::ResumeTimer)
         };
