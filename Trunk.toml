@@ -1,0 +1,8 @@
+[build]
+target = "./index.html"
+
+[watch]
+ignore = ["./src-tauri"]
+
+[serve]
+address = "127.0.0.1"

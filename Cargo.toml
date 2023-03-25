@@ -12,3 +12,6 @@ gloo = "0.7"
 instant = "0.1.12"
 wasm-bindgen = "0.2.81"
 stylist = { version = "0.10.1", features = ["yew"] }
+
+[workspace]
+members = ["src-tauri"]
