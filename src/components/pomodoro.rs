@@ -1,20 +1,22 @@
-use super::timer::{Timer, TimerMsg};
-use crate::tauri::notify;
-use crate::utils::weak_component_link::WeakComponentLink;
+use crate::tauri::{invoke, listen, log, notify};
+use print_duration::print_duration;
+use serde::Serialize;
+use std::time::Duration;
 use yew::prelude::*;
 
-pub struct Pomodoro {
-    status: Status,
-    timer_link: WeakComponentLink<Timer>,
-}
+use wasm_bindgen_futures::spawn_local;
 
-#[derive(Clone, PartialEq, Properties)]
-pub struct PomodoroProps {}
-
+#[derive(PartialEq)]
 enum Status {
     Focus(u32),
     LongBreak,
     ShortBreak(u32),
+}
+
+impl Default for Status {
+    fn default() -> Self {
+        Self::LongBreak.try_next()
+    }
 }
 
 impl std::fmt::Display for Status {
@@ -32,10 +34,6 @@ impl Status {
     const LONG_BREAK_DURATION: u64 = 15;
     const SHORT_BREAK_DURATION: u64 = 5;
     const SHORT_BREAK_PER_LONG_BREAK: u32 = 3;
-
-    pub fn next(&mut self) {
-        *self = self.try_next()
-    }
 
     pub fn time_duration(&self) -> u64 {
         (match self {
@@ -60,62 +58,87 @@ impl Status {
     }
 }
 
-pub enum PomodoroMsg {
-    NotifyToggled(bool),
-    AutoNextTaskToggled(bool),
-    ExtendStage,
-    NextStage,
+#[derive(Serialize)]
+pub struct StartTimerArgs {
+    duration: u64,
 }
 
-impl Component for Pomodoro {
-    type Message = PomodoroMsg;
-
-    type Properties = PomodoroProps;
-
-    fn create(_ctx: &Context<Self>) -> Self {
-        let timer_link = WeakComponentLink::default();
-        Self {
-            status: Status::LongBreak.try_next(),
-            timer_link,
-        }
+#[function_component(Pomodoro)]
+pub fn pomodoro() -> Html {
+    let status = use_state(Status::default);
+    let time_left_handler = use_state(|| Duration::from_secs(status.time_duration()));
+    let running = use_state(|| true);
+    {
+        let time_left_handler = time_left_handler.clone();
+        use_effect_with_deps(
+            move |status| time_left_handler.set(Duration::from_secs(status.time_duration())),
+            status.clone(),
+        );
     }
-
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            PomodoroMsg::NotifyToggled(_) => todo!(),
-            PomodoroMsg::AutoNextTaskToggled(_) => todo!(),
-            PomodoroMsg::ExtendStage => todo!(),
-            PomodoroMsg::NextStage => {
-                if notify(format!("Timer Expired for {}", self.status)).is_err() {
-                    gloo::console::log!("timer expired!");
+    {
+        let status = status.clone();
+        let time_left_handler = time_left_handler.clone();
+        use_effect_with_deps(
+            move |running| {
+                let running = running.clone();
+                let handler = if *running {
+                    log("start_timer");
+                    let start_timer = StartTimerArgs {
+                        duration: time_left_handler.as_secs(),
+                    };
+                    spawn_local(async move {
+                        invoke("plugin:timer|start_timer", start_timer)
+                            .await
+                            .expect("failed to invoke start timer")
+                    });
+                    let handler = listen(
+                        "tick",
+                        Box::new(move |time_left: u64| {
+                            log("tick");
+                            let time_left = Duration::from_secs(time_left);
+                            if time_left.is_zero() {
+                                time_left_handler.set(time_left);
+                                notify(&format!("{} ended", *status)).expect("notify failed");
+                                running.set(false);
+                                status.set(status.try_next())
+                            } else {
+                                time_left_handler.set(time_left);
+                            };
+                        }),
+                    );
+                    Some(handler)
+                } else {
+                    spawn_local(async move {
+                        invoke("plugin:timer|stop_timer", ())
+                            .await
+                            .expect("failed to invoke start timer")
+                    });
+                    None
                 };
-                self.status.next();
-                self.timer_link
-                    .borrow_clone_unwrap()
-                    .send_message(TimerMsg::ResetTimer(self.status.time_duration()));
-                true
-            }
-        }
+                move || {
+                    log("closing handler");
+                    drop(handler)
+                }
+            },
+            running.clone(),
+        );
     }
-
-    fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
-        if first_render {
-            self.timer_link
-                .borrow_clone_unwrap()
-                .send_message(TimerMsg::ResetTimer(self.status.time_duration()))
-        }
-    }
-
-    fn view(&self, ctx: &Context<Self>) -> Html {
-        let timer_link = self.timer_link.clone();
-        let on_finish = Some(Callback::from({
-            let link = ctx.link().clone();
-            move |_| link.send_message(Self::Message::NextStage)
-        }));
-        html! {
-            <Timer weak_link={timer_link} on_finish={on_finish}>
-                <p>{format!("Current Status: {}", self.status)}</p>
-            </Timer>
-        }
+    let (icon, color) = if *running {
+        ("pause", "red")
+    } else {
+        ("play_arrow", "green")
+    };
+    html! {
+        <>
+            <p>{format!("Time Left: {}s", print_duration(*time_left_handler, 0..3))}</p>
+            <p>{format!("Current Status: {}", *status)}</p>
+            <div >
+                <button class={classes!("btn-floating", color)} onclick={move |_| {running.set(!*running)}}>
+                    <i class="material-icons">{icon}</i>
+                </button>
+                <progress value={time_left_handler.as_secs().to_string()} max={status.time_duration().to_string()}
+                 style="width: 91%"/>
+            </div>
+        </>
     }
 }

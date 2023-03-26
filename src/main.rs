@@ -5,28 +5,17 @@ pub mod components;
 pub mod tauri;
 pub mod utils;
 
-struct App {}
-
-impl Component for App {
-    type Message = ();
-
-    type Properties = ();
-
-    fn create(_ctx: &Context<Self>) -> Self {
-        Self {}
-    }
-
-    fn view(&self, _ctx: &Context<Self>) -> Html {
-        html! {
-            <div class="container">
-                <div class="card grey darken-3 center">
-                    <h1 class="card-title">{ "Pomodoro Timer" }</h1>
-                    <div class="card-content">
-                        <Pomodoro />
-                    </div>
+#[function_component(App)]
+fn app() -> Html {
+    html! {
+        <div class="container">
+            <div class="card grey darken-3 center">
+                <h1 class="card-title">{ "Pomodoro Timer" }</h1>
+                <div class="card-content">
+                    <Pomodoro />
                 </div>
             </div>
-        }
+        </div>
     }
 }
 
