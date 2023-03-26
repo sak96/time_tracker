@@ -13,6 +13,7 @@ Time tracker app.
 
 ```bash
 cargo install trunk tauri-cli
+cargo install wasm-bindgen-cli # optional but avoid some errors
 ```
 
 ## Development
