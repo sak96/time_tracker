@@ -25,7 +25,7 @@ async fn stop_timer(timer: State<'_, Timer>) -> Result<(), String> {
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("timer")
         .setup(|app_handle| {
-            let (tx, mut rx) = channel::<u64>(1);
+            let (tx, mut rx) = channel::<u64>(30);
             let timer = app_handle.clone();
             app_handle.manage(tx);
             tauri::async_runtime::spawn(async move {
