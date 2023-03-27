@@ -1,5 +1,6 @@
 use crate::tauri::{invoke, listen, log, notify};
 use print_duration::print_duration;
+use stylist::yew::use_style;
 use serde::Serialize;
 use std::time::Duration;
 use yew::prelude::*;
@@ -123,22 +124,59 @@ pub fn pomodoro() -> Html {
             running.clone(),
         );
     }
-    let (icon, color) = if *running {
-        ("pause", "red")
-    } else {
-        ("play_arrow", "green")
-    };
+    let class = use_style!(
+        r#"
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        justify-content: center;
+        align-content: center;
+        text-align: center;
+        "#
+    );
+    let timer_class = use_style!(
+        r#"
+        display: flex;
+        flex-direction: row;
+        margin: 1em;
+        align-content: center;
+        align-self: center;
+        text-align: vertical;
+        width: 80%;
+        @keyframes pulse {
+          0% { transform: scale(.90); }
+          100% { transform: scale(1.10); }
+        }
+        progress {
+            flex:  1;
+            margin: 1.5em;
+        }
+        button {
+            border-radius: 50%;
+            background-color: green;
+            border: 0px;
+            font-size: 1.5em;
+            width: 2em;
+        }
+        button.running {
+            background-color: red;
+            animation: pulse 1s infinite ease-out;
+        }
+        "#,
+    );
     html! {
-        <>
+        <div {class}>
             <p>{format!("Time Left: {}s", print_duration(*time_left_handler, 0..3))}</p>
             <p>{format!("Current Status: {}", *status)}</p>
-            <div >
-                <button class={classes!("btn-floating", color)} onclick={move |_| {running.set(!*running)}}>
-                    <i class="material-icons">{icon}</i>
-                </button>
-                <progress value={time_left_handler.as_secs().to_string()} max={status.time_duration().to_string()}
-                 style="width: 91%"/>
-            </div>
-        </>
+            <div class={timer_class}>
+                <button
+                    class={classes!(running.then_some(Some("running")))}
+                    onclick={move |_| {running.set(!*running)}}
+                    ~innerText={if *running {"⏸"}else {"▶"}} />
+                <progress
+                    value={time_left_handler.as_secs().to_string()}
+                    max={status.time_duration().to_string()} />
+             </div>
+        </div>
     }
 }
