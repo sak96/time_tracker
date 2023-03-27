@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
+pub mod window;
+
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = ["window.__TAURI__.notification"], js_name = sendNotification, catch)]
