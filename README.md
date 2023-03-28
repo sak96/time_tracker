@@ -30,4 +30,5 @@ cargo tauri build
 
 ## Screenshot
 
-!["Pomodoro Screen"](./screenshot/pomodoro.png)
+!["Pomodoro Screen Light Theme"](./screenshot/pomodoro-light.png)
+!["Pomodoro Screen Dark Theme"](./screenshot/pomodoro-dark.png)
